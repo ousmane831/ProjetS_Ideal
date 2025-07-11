@@ -1,0 +1,246 @@
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+
+# --- USER PRINCIPAL ---
+class User(AbstractUser):
+    adresse = models.CharField(max_length=255)
+    telephone = models.CharField(max_length=20)
+
+    def __str__(self):
+        return self.username
+
+    def has_role(self):
+        if hasattr(self, 'apporteuraffaires'):
+            return "Apporteur"
+        elif hasattr(self, 'chercheuraffaires'):
+            return "Chercheur"
+        elif hasattr(self, 'expert'):
+            return "Expert"
+        elif hasattr(self, 'administrateur'):
+            return "Administrateur"
+        return "Utilisateur"
+
+    def creer_compte(self):
+        # déjà géré par Django, mais ici placeholder
+        self.save()
+
+    def authentifier(self):
+        return self.is_authenticated
+
+    def modifier_son_compte(self, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+        self.save()
+
+    def demander_suppression_de_son_compte(self):
+        self.is_active = False
+        self.save()
+
+    def telecharger_documentation(self, doc):
+        return doc.lien
+
+    def voir_evenements(self):
+        return Evenement.objects.all()
+
+    def inscrire_evenement(self, evenement):
+        evenement.participants.add(self)
+
+    def contacter_experts(self):
+        return Expert.objects.all()
+
+
+# --- APPORTEUR D’AFFAIRES ---
+class ApporteurAffaires(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    def publier_annonce(self, titre, description, categorie, contact, fichier=None):
+        return Annonce.objects.create(
+            titre=titre,
+            description=description,
+            categorie=categorie,
+            auteur=self,
+            contact=contact,
+            pieces_jointes=fichier
+        )
+
+    def demander_modification_annonce(self, annonce, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(annonce, attr, value)
+        annonce.save()
+
+    def demander_suppression_annonce(self, annonce):
+        annonce.delete()
+
+    def consulter_annonces_publiees(self):
+        return self.annonce_set.all()
+
+    def __str__(self):
+        return f"Apporteur: {self.user.username}"
+
+
+# --- CHERCHEUR D’AFFAIRES ---
+class ChercheurAffaires(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    def chercher_annonces(self, mot_cle=None, categorie=None):
+        qs = Annonce.objects.all()
+        if mot_cle:
+            qs = qs.filter(titre__icontains=mot_cle)
+        if categorie:
+            qs = qs.filter(categorie__iexact=categorie)
+        return qs
+
+    def consulter_annonce(self, annonce_id):
+        return Annonce.objects.get(id=annonce_id)
+
+    def contacter_apporteur(self, annonce):
+        return annonce.contact
+
+    def __str__(self):
+        return f"Chercheur: {self.user.username}"
+
+
+# --- EXPERT ---
+class Expert(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    duree_experience = models.PositiveIntegerField()
+    specialite = models.CharField(max_length=100)
+    localisation = models.CharField(max_length=100)
+    services_proposes = models.TextField()
+
+    def afficher_profil(self):
+        return {
+            "nom": self.user.username,
+            "specialite": self.specialite,
+            "experience": self.duree_experience,
+            "localisation": self.localisation,
+            "services": self.services_proposes,
+        }
+
+    def demander_de_creation_de_compte(self):
+        self.user.is_active = False
+        self.user.save()
+
+    def authentifier(self):
+        return self.user.is_authenticated
+
+    def modifier_son_compte(self, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+        self.save()
+
+    def demander_suppression_decompte(self):
+        self.user.is_active = False
+        self.user.save()
+
+    def fournir_conseil(self, sujet):
+        return f"Expertise sur : {sujet} - Spécialité : {self.specialite}"
+
+    def __str__(self):
+        return f"Expert: {self.user.username}"
+
+
+# --- ADMINISTRATEUR ---
+class Administrateur(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    def authentifier(self):
+        return self.user.is_authenticated
+
+    def valider_creation_compte_expert(self, expert):
+        expert.user.is_active = True
+        expert.user.save()
+
+    def valider_suppression_compte(self, user):
+        user.is_active = False
+        user.save()
+
+    def valider_modification_annonce(self, annonce, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(annonce, attr, value)
+        annonce.save()
+
+    def supprimer_comptes(self, user):
+        user.delete()
+
+    def creer_compte_experts(self, **kwargs):
+        expert_user = User.objects.create_user(**kwargs)
+        Expert.objects.create(user=expert_user)
+        return expert_user
+
+    def ajouter_documentation(self, **kwargs):
+        return Documentation.objects.create(**kwargs)
+
+    def modifier_documentation(self, doc, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(doc, attr, value)
+        doc.save()
+
+    def supprimer_documentation(self, doc):
+        doc.delete()
+
+    def ajouter_evenement(self, **kwargs):
+        return Evenement.objects.create(**kwargs)
+
+    def modifier_evenement(self, event, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(event, attr, value)
+        event.save()
+
+    def supprimer_evenement(self, event):
+        event.delete()
+
+    def __str__(self):
+        return f"Administrateur: {self.user.username}"
+
+
+# --- ANNONCE ---
+class Annonce(models.Model):
+    titre = models.CharField(max_length=200)
+    description = models.TextField()
+    categorie = models.CharField(max_length=100)
+    date_publication = models.DateTimeField(auto_now_add=True)
+    auteur = models.ForeignKey(ApporteurAffaires, on_delete=models.CASCADE)
+    pieces_jointes = models.FileField(upload_to='annonces/', blank=True, null=True)
+    contact = models.CharField(max_length=100)
+
+    def est_recente(self):
+        return (timezone.now() - self.date_publication).days <= 7
+
+    def __str__(self):
+        return self.titre
+
+
+# --- DOCUMENTATION ---
+class Documentation(models.Model):
+    titre = models.CharField(max_length=200)
+    categorie = models.CharField(max_length=100)
+    contenu = models.TextField()
+    lien = models.URLField()
+
+    def consulter_resume(self):
+        return self.contenu[:150] + "..."
+
+    def __str__(self):
+        return self.titre
+
+
+# --- EVENEMENT ---
+class Evenement(models.Model):
+    titre = models.CharField(max_length=200)
+    description = models.TextField()
+    heure_debut = models.TimeField()
+    heure_fin = models.TimeField()
+    date = models.DateField()
+    lieu = models.CharField(max_length=255)
+    image = models.ImageField(upload_to='evenements/', null=True, blank=True)
+    categorie = models.CharField(max_length=100)
+    participants = models.ManyToManyField(User, blank=True)
+
+    def est_en_cours(self):
+        now = timezone.now()
+        return self.date == now.date() and self.heure_debut <= now.time() <= self.heure_fin
+
+    def __str__(self):
+        return self.titre
