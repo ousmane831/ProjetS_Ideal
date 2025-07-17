@@ -4,6 +4,7 @@ from django.utils import timezone
 
 # --- USER PRINCIPAL ---
 class User(AbstractUser):
+    
     adresse = models.CharField(max_length=255)
     telephone = models.CharField(max_length=20)
 
@@ -108,6 +109,7 @@ class Expert(models.Model):
     specialite = models.CharField(max_length=100)
     localisation = models.CharField(max_length=100)
     services_proposes = models.TextField()
+    
 
     def afficher_profil(self):
         return {
@@ -214,10 +216,17 @@ class Annonce(models.Model):
 
 # --- DOCUMENTATION ---
 class Documentation(models.Model):
-    titre = models.CharField(max_length=200)
-    categorie = models.CharField(max_length=100)
+    
+    CATEGORIE_CHOICES = [
+        ("commerciale", "Commerciale"),
+        ("juridique", "Juridique"),
+        ("technique", "Technique"),
+        ("autre", "Autre"),
+    ]
+    titre = models.CharField(max_length=255)
+    categorie = models.CharField(max_length=50, choices=CATEGORIE_CHOICES)
     contenu = models.TextField()
-    lien = models.URLField()
+    lien = models.URLField(blank=True, null=True)
 
     def consulter_resume(self):
         return self.contenu[:150] + "..."
@@ -228,6 +237,15 @@ class Documentation(models.Model):
 
 # --- EVENEMENT ---
 class Evenement(models.Model):
+    
+    CATEGORIE_CHOICES = [
+        ('opportunites', "Opportunités d'affaires"),
+        ('networking', "Networking"),
+        ('formation', "Formation"),
+        ('conference', "Conférence"),
+        ('atelier', "Atelier"),
+        # Ajoute ici d'autres catégories si besoin
+    ]
     titre = models.CharField(max_length=200)
     description = models.TextField()
     heure_debut = models.TimeField()
@@ -235,8 +253,8 @@ class Evenement(models.Model):
     date = models.DateField()
     lieu = models.CharField(max_length=255)
     image = models.ImageField(upload_to='evenements/', null=True, blank=True)
-    categorie = models.CharField(max_length=100)
-    participants = models.ManyToManyField(User, blank=True)
+    categorie = models.CharField(max_length=50, choices=CATEGORIE_CHOICES)
+   
 
     def est_en_cours(self):
         now = timezone.now()
