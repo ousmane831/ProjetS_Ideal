@@ -20,21 +20,25 @@ class User(AbstractUser):
         elif hasattr(self, 'administrateur'):
             return "Administrateur"
         return "Utilisateur"
+    
 
-    def creer_compte(self):
+    def creer_compte(self): # Fonction de création de compte
         # déjà géré par Django, mais ici placeholder
+        
         self.save()
 
-    def authentifier(self):
+
+    def authentifier(self):# Fonction d'authentification
         return self.is_authenticated
 
-    def modifier_son_compte(self, **kwargs):
+    def modifier_son_compte(self, **kwargs):#cette fonction permet à l'utilisateur de modifier son compte
         for attr, value in kwargs.items():
             setattr(self, attr, value)
         self.save()
 
     def demander_suppression_de_son_compte(self):
-        self.is_active = False
+        #ici on veut supprimer le compte de l'utilisateur mais on ne le supprime pas directement car on peut le réactiver plus tard
+        self.is_active = False ;# on désactive le compte
         self.save()
 
     def telecharger_documentation(self, doc):
@@ -82,8 +86,10 @@ class ApporteurAffaires(models.Model):
 # --- CHERCHEUR D’AFFAIRES ---
 class ChercheurAffaires(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-
+# cette fonction nous permet de chercher des annonces
     def chercher_annonces(self, mot_cle=None, categorie=None):
+        # ici on filtre selon les critères fournis
+        
         qs = Annonce.objects.all()
         if mot_cle:
             qs = qs.filter(titre__icontains=mot_cle)
