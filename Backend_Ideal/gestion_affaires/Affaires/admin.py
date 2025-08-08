@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    Publicite,
     User,
     ApporteurAffaires,
     ChercheurAffaires,
@@ -53,6 +54,12 @@ class AnnonceAdmin(admin.ModelAdmin):
 class DocumentationAdmin(admin.ModelAdmin):
     list_display = ('titre', 'categorie', 'lien')
     search_fields = ('titre', 'categorie')
+
+
+@admin.register(Publicite)
+class PubliciteAdmin(admin.ModelAdmin):
+    list_display = ('titre',)
+    search_fields = ('titre', 'description')
 
 
 @admin.register(Evenement)

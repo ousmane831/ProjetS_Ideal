@@ -8,13 +8,16 @@ from .views import (
     ApporteurAffairesViewSet,
     ChercheurAffairesViewSet,
     AdministrateurViewSet,
-    UserViewSet
+    PubliciteViewSet,
+    UserViewSet,
+    SignupView  
 )
 
 router = DefaultRouter()
 router.register(r'annonces', AnnonceViewSet)
 router.register(r'evenements', EvenementViewSet)
 router.register(r'documentations', DocumentationViewSet)
+router.register(r'publicites', PubliciteViewSet)
 router.register(r'experts', ExpertViewSet)
 router.register(r'apporteurs', ApporteurAffairesViewSet)
 router.register(r'chercheurs', ChercheurAffairesViewSet)
@@ -23,4 +26,6 @@ router.register(r'users', UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('signup/', SignupView.as_view(), name='signup'),
+    
 ]

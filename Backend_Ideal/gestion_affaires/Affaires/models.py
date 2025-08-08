@@ -125,10 +125,7 @@ class Expert(models.Model):
     duree_experience = models.PositiveIntegerField()
     specialite = models.CharField(max_length=100)
     localisation = models.CharField(max_length=100)
-    services_proposes = models.CharField(max_length=50, choices=services, default='logistique')
-    
-    
-
+    services_proposes = models.CharField(max_length=50, choices=services, default='logistique')    
     def afficher_profil(self):
         return {
             "nom": self.user.username,
@@ -230,14 +227,23 @@ class Annonce(models.Model):
     categorie = models.CharField(max_length=50, choices=categories ,default='opportunites_affaires')
     date_publication = models.DateTimeField(auto_now_add=True)
     auteur = models.ForeignKey(ApporteurAffaires, on_delete=models.CASCADE)
-    pieces_jointes = models.FileField(upload_to='annonces/', blank=True, null=True)
     contact = models.CharField(max_length=100)
+    email = models.EmailField(null=True, blank=True)  # Si ce n’est pas toujours requis
+    lieu = models.CharField(max_length=100, default='Non spécifié')
 
     def est_recente(self):
         return (timezone.now() - self.date_publication).days <= 7
 
     def __str__(self):
         return self.titre
+
+
+class PieceJointe(models.Model):
+    annonce = models.ForeignKey(Annonce, on_delete=models.CASCADE, related_name='pieces_jointes')
+    fichier = models.FileField(upload_to='annonces/')
+    
+    def __str__(self):
+        return f"Fichier {self.id} pour {self.annonce.titre}"
 
 
 # --- DOCUMENTATION ---
@@ -261,6 +267,14 @@ class Documentation(models.Model):
         return self.titre
 
 
+
+class Tag(models.Model):
+    nom = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.nom
+
+
 # --- EVENEMENT ---
 class Evenement(models.Model):
     
@@ -272,17 +286,7 @@ class Evenement(models.Model):
         ('atelier', "Atelier"),
         # Ajoute ici d'autres catégories si besoin
     ]
-    tags = [
-        ('agricultur', "Agriculture"),
-        ('innovation', "Innovation"),
-        ('partenariats', "Partanirats"),
-        ('investissement', "Investissement"),
-        ('financement', "Financement"),
-        ('autre', "Autre"),
-        # Ajoute ici d'autres catégories si besoin
-    ]
-    
-    
+   
     titre = models.CharField(max_length=200)
     description = models.TextField()
     heure_debut = models.TimeField()
@@ -291,13 +295,28 @@ class Evenement(models.Model):
     lieu = models.CharField(max_length=255)
     image = models.ImageField(upload_to='evenements/', null=True, blank=True)
     categorie = models.CharField(max_length=50, choices=CATEGORIE_CHOICES)
-    tags = models.CharField(max_length=50, choices=tags, default='default_value')
+    tags = models.ManyToManyField(Tag, blank=True)
+    lien_inscription = models.URLField(blank=True, null=True)
     
-   
 
     def est_en_cours(self):
         now = timezone.now()
         return self.date == now.date() and self.heure_debut <= now.time() <= self.heure_fin
 
+    def __str__(self):
+        return self.titre
+
+
+# --- Publicite ---
+class Publicite(models.Model):
+      
+    titre = models.CharField(max_length=200)
+    # description = models.TextField()
+    contenu = models.TextField()
+    badge = models.CharField(max_length=200)
+    image = models.ImageField(upload_to='publicites/', null=True, blank=True)
+    date_publication = models.DateTimeField(auto_now_add=True)
+    contact = models.CharField(max_length=100)
+    lien = models.URLField(blank=True, null=True)
     def __str__(self):
         return self.titre

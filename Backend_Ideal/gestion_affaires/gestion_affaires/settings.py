@@ -40,12 +40,16 @@ INSTALLED_APPS = [
     
     "Affaires",
     "rest_framework",
+    "rest_framework_simplejwt",
     "corsheaders",
+    "drf_yasg",
+    
     
     
 ]
 
 MIDDLEWARE = [
+    
     'corsheaders.middleware.CorsMiddleware',
     
     "django.middleware.security.SecurityMiddleware",
@@ -65,6 +69,13 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',  
     ],
 }
+
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
+]
+
 
 from datetime import timedelta
 

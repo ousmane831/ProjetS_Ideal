@@ -9,13 +9,14 @@ class IsChercheur(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and hasattr(request.user, 'chercheuraffaires')
 
-class IsAdminOrReadOnlyForExpert(permissions.BasePermission):
+class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
-        user = request.user
+        # Tout utilisateur connecté peut lire (GET, HEAD, OPTIONS)
         if request.method in permissions.SAFE_METHODS:
-            return user.is_authenticated and (hasattr(user, 'expert') or hasattr(user, 'administrateur'))
-        return user.is_authenticated and hasattr(user, 'administrateur')
+            return request.user.is_authenticated
 
+        # Seuls les administrateurs peuvent modifier
+        return request.user.is_authenticated and hasattr(request.user, 'administrateur')
 class IsAdministrateur(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user.is_authenticated and hasattr(request.user, 'administrateur')
@@ -25,3 +26,5 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user.is_authenticated and hasattr(request.user, 'administrateur')
+
+
